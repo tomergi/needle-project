@@ -1,6 +1,4 @@
-import scrapy
-#from scrapy_splash import SplashRequest
-from kickstarter.items import KickstarterItem as Items
+import pandas
 import json
 from datetime import datetime
 import re
@@ -14,6 +12,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import pickle
+import csv
 
 MAX_BACKERS = re.compile(r"Limited \([0-9]+ left of ([0-9]+)\)")
 
@@ -71,6 +70,8 @@ def parse_page(url):
         browser.get(url)
         time.sleep(2)
         r = lxml.html.fromstring(browser.page_source)
+        if "We apologize but something's gone wrong — an old link, a bad link, or some little glitch." in browser.page_source:
+            return None
         try:
             title = r.xpath("//h2[contains(@class, 'type-24 type-28-sm type-38-md navy-700 medium mb3')]/text()")
             if len(title) == 0:
@@ -159,22 +160,40 @@ def parse_page(url):
         return item
     except Exception as e:
         return None
+def scrape_projects_list(projects):
+    print("there are %d projects" % len(projects))
+    outputfd = open("result.json", "w")
+    outputfd.write("[\n")
+    last_item = None
+    for url, csv_row in projects:
+        item = parse_page(url)
+        if item:
+            item['csv_row'] = csv_row
+            if last_item:
+                outputfd.write(json.dumps(last_item))
+                outputfd.write(",\n")
+                outputfd.flush()
+            last_item = item
+    if last_item:
+        outputfd.write(json.dumps(last_item))
+        outputfd.write("]")
+        outputfd.flush()
+
+def get_projects_list_from_csv(filename="ks-projects-201801.csv"):
+    urls = []
+    with open(filename, "r") as fd:
+        reader = csv.reader(fd)
+        for row in reader:
+            try:
+                project_id = int(row[0])
+                project_name = row[1]
+                project_url = "https://www.kickstarter.com/projects/%d/%s" % (project_id, project_name.replace("-", "").replace("!", "").replace("&","").replace(":","").replace("(","").replace(")","").replace(".","").replace(",","").replace("  "," ").replace("  ", " ").replace(" ", "-"))
+                urls.append((project_url, row))
+            except Exception as e:
+                print(e)
+                continue
+    return urls
+
 #projects = pickle.load(open("projects.pkl", "rb"))
-#print("there are %d projects" % len(projects))
-#outputfd = open("result.json", "w")
-#outputfd.write("[\n")
-#last_item = None
-#for url in projects:
-#    item = parse_page(url)
-#    if item:
-#        if last_item:
-#            outputfd.write(json.dumps(last_item))
-#            outputfd.write(",\n")
-#            outputfd.flush()
-#        last_item = item
-#if last_item:
-#    outputfd.write(json.dumps(last_item))
-#    outputfd.write("]")
-#    outputfd.flush()
-parse_main_page()
-    
+#parse_main_page()
+scrape_projects_list(get_projects_list_from_csv('food_dollars.csv'))
