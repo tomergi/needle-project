@@ -68,10 +68,11 @@ class Classifier(object):
     def create_features_and_tags(self):
         items, y = load_dataset()
         X = np.array([]).reshape(len(items), 0)
-        X = self.add_titles(X, items)
-        X = self.add_goal(X, items)
-        X = self.add_time_period(X, items)
-        X = self.add_description(X, items)
+        #X = self.add_titles(X, items)
+        #X = self.add_goal(X, items)
+        #X = self.add_time_period(X, items)
+        #X = self.add_description(X, items)
+        X = self.add_reward_num(X, items)
         return X, np.array(y)
 
     def add_titles(self, X, items):
@@ -127,8 +128,13 @@ class Classifier(object):
         X = np.concatenate((X, goals), axis=1)
         return X
 
-    def add_features(self, X):
-        print(X.shape)
+    def add_reward_num(self, X, items):
+        rewards = []
+        for item in items:
+            rewards.append(len(item['rewards']))
+        rewards = np.array([rewards])
+        print(rewards.shape)
+        X = np.concatenate((X, rewards.T), axis=1)
         return X
 
 
@@ -229,6 +235,7 @@ def getLable(clf, example):
 #validation
 def loss(X_valid,Y_valid,X_train,Y_train):
     clf = train(X_train, Y_train)
+    visualize_classifier(clf)
     sum = 0
     for example in range( len(X_valid)):
         if(getLable(clf,X_valid[example]) !=Y_valid[example]):
@@ -236,10 +243,19 @@ def loss(X_valid,Y_valid,X_train,Y_train):
 
     return sum/len(X_valid)
 
+def visualize_classifier(model):
+    # Extract single tree
+    estimator = model.estimators_[0]
 
+    from sklearn.tree import export_graphviz
+    # Export as dot file
+    export_graphviz(estimator, out_file='tree.dot',
+                    rounded = True, proportion = False,
+                    precision = 2, filled = True)
 
-
-
+    # Convert to png using system command (requires Graphviz)
+    from subprocess import call
+    call(['dot', '-Tpng', 'tree.dot', '-o', 'tree.png', '-Gdpi=600'])
 
 if __name__ == "__main__":
     # print("start")
