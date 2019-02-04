@@ -13,7 +13,7 @@ import lxml.html
 
 fail=0
 success=1
-TRAIN_FRAC=0.65
+TRAIN_FRAC=0.75
 
 MAX_BAG_SIZE = 5000
 
@@ -68,10 +68,10 @@ class Classifier(object):
     def create_features_and_tags(self):
         items, y = load_dataset()
         X = np.array([]).reshape(len(items), 0)
-        #X = self.add_titles(X, items)
-        #X = self.add_goal(X, items)
-        #X = self.add_time_period(X, items)
-        #X = self.add_description(X, items)
+        # X = self.add_titles(X, items)
+        X = self.add_goal(X, items)
+        X = self.add_time_period(X, items)
+        # X = self.add_description(X, items)
         X = self.add_reward_num(X, items)
         return X, np.array(y)
 
@@ -221,13 +221,13 @@ class Classifier(object):
 
 #train
 def train(X,Y):
-    #clf = svm.SVC()
-    clf = RandomForestClassifier(n_estimators=10, max_depth=10, random_state=0)
+    clf = svm.SVC()
+    # clf = RandomForestClassifier(n_estimators=10, max_depth=30, random_state=0)
     clf.fit(X, Y)
-    #svm.SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
-    #        decision_function_shape=None, degree=3, gamma='auto', kernel='sigmoid',
-    #        max_iter=-1, probability=False, random_state=None, shrinking=True,
-    #        tol=0.001, verbose=False)
+    svm.SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
+           decision_function_shape=None, degree=3, gamma='auto', kernel='sigmoid',
+           max_iter=-1, probability=False, random_state=None, shrinking=True,
+           tol=0.001, verbose=False)
 
     return clf
 def getLable(clf, example):
@@ -235,7 +235,7 @@ def getLable(clf, example):
 #validation
 def loss(X_valid,Y_valid,X_train,Y_train):
     clf = train(X_train, Y_train)
-    visualize_classifier(clf)
+    # visualize_classifier(clf)
     sum = 0
     for example in range( len(X_valid)):
         if(getLable(clf,X_valid[example]) !=Y_valid[example]):
@@ -251,7 +251,7 @@ def visualize_classifier(model):
     # Export as dot file
     export_graphviz(estimator, out_file='tree.dot',
                     rounded = True, proportion = False,
-                    precision = 2, filled = True)
+                    precision = 2, filled = True, class_names=["fail", "success"])
 
     # Convert to png using system command (requires Graphviz)
     from subprocess import call

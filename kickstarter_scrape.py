@@ -13,6 +13,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import pickle
 import csv
+import argparse
 
 MAX_BACKERS = re.compile(r"Limited \([0-9]+ left of ([0-9]+)\)")
 
@@ -196,4 +197,9 @@ def get_projects_list_from_csv(filename="ks-projects-201801.csv"):
 
 #projects = pickle.load(open("projects.pkl", "rb"))
 #parse_main_page()
-scrape_projects_list(get_projects_list_from_csv('food_dollars.csv'))
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("csv_file", help="csv file with project names and stuff")
+    args = parser.parse_args()
+    scrape_projects_list(get_projects_list_from_csv(args.csv_file))
