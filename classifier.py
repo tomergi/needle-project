@@ -16,15 +16,16 @@ success=1
 TRAIN_FRAC=0.75
 
 MAX_BAG_SIZE = 5000
+MAX_ITEMS = 15000
 
 successful_projects = 0
 
-def load_dataset(filename='result_food.json'):
+def load_dataset(filename='usd_Games_big.json'):
     global successful_projects
     items = []
     pred = []
     with open(filename, 'r') as fd:
-        for row in fd.readlines():
+        for row in fd:
             try:
                 item = json.loads(row.strip()[:-1])
                 _, csv_id, csv_name, csv_category, csv_main_category, csv_currency, csv_deadline, csv_goal, csv_launched, csv_pledged, csv_state, csv_backers, csv_country, csv_usd_pledged, csv_pledged_real, csv_usd_goal_real = item['csv_row']
@@ -43,12 +44,16 @@ def load_dataset(filename='result_food.json'):
                 item['csv_usd_pledged'] = csv_usd_pledged
                 item['csv_pledged_real'] = csv_pledged_real
                 item['csv_usd_goal_real'] = float(csv_usd_goal_real)
+                if item['csv_state'] == 'canceled':
+                    continue
                 items.append(item)
                 if item['csv_state'] == 'successful':
                     pred.append(1)
                     successful_projects += 1
                 else:
                     pred.append(0)
+                if len(items) > MAX_ITEMS:
+                    break
             except:
                 continue
 
@@ -221,13 +226,13 @@ class Classifier(object):
 
 #train
 def train(X,Y):
-    clf = svm.SVC()
-    # clf = RandomForestClassifier(n_estimators=10, max_depth=30, random_state=0)
+    #clf = svm.SVC()
+    clf = RandomForestClassifier(n_estimators=10, max_depth=10, random_state=0)
     clf.fit(X, Y)
-    svm.SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
-           decision_function_shape=None, degree=3, gamma='auto', kernel='sigmoid',
-           max_iter=-1, probability=False, random_state=None, shrinking=True,
-           tol=0.001, verbose=False)
+    #svm.SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
+    #       decision_function_shape=None, degree=3, gamma='auto', kernel='sigmoid',
+    #       max_iter=-1, probability=False, random_state=None, shrinking=True,
+    #       tol=0.001, verbose=False)
 
     return clf
 def getLable(clf, example):
