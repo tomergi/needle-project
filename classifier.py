@@ -89,7 +89,6 @@ class Classifier(object):
                                      stop_words=stop_words.stop_words, \
                                      max_features=50000)
 
-        #x = self.clean_text(X)
         train_data_features = vectorizer.fit_transform(titles)
         X = np.concatenate((X, train_data_features.toarray()), axis=1)
         return X
@@ -120,13 +119,10 @@ class Classifier(object):
                                      stop_words=None, \
                                      max_features=50000)
 
-        #x = self.clean_text(X)
         train_data_features = vectorizer.fit_transform(descriptions)
         X = np.concatenate((X, train_data_features.toarray()), axis=1)
         return X
             
-
-
     def add_goal(self, X, items):
         goals = np.array([[i['csv_usd_goal_real'] for i in items]]).T
         
@@ -141,72 +137,6 @@ class Classifier(object):
         print(rewards.shape)
         X = np.concatenate((X, rewards.T), axis=1)
         return X
-
-
-    def train(self,X,y):
-        vectorizer = CountVectorizer(analyzer="word", \
-                                     tokenizer=None, \
-                                     preprocessor=None, \
-                                     stop_words=None, \
-                                     max_features=5000)
-
-        train_data_features = vectorizer.fit_transform(X)
-        np.asarray(train_data_features)
-
-        forest = RandomForestClassifier(n_estimators=100)
-
-        forest = forest.fit(train_data_features, y)
-        return forest, vectorizer
-
-
-    bag_of_word = set()
-
-    def title_to_bag(self, title, bag, bag_indexes):
-        translator = str.maketrans('','',string.punctuation)
-        stop_words_set = set(stop_words.stop_words)
-        vector = np.zeros(len(bag), dtype=np.int32)
-        line = title.translate(translator)
-        words = line.split(" ")
-        for word in words:
-            word = word.lower()
-            if word and word in bag_indexes and word not in stop_words_set:
-                vector[bag_indexes[word]] +=1
-        return vector
-
-
-    def create_bag_of_words(self, X):
-        translator = str.maketrans('','',string.punctuation)
-        stop_words_set = set(stop_words.stop_words)
-        word_set = {}
-        for line in X:
-            line = line.translate(translator)
-            words = line.split(" ")
-            for word in words:
-                word = word.lower()
-                if word and word in word_set and word not in stop_words_set:
-                    word_set[word] +=1
-                else:
-                    word_set[word] = 1
-
-        bag = sorted(list(word_set.items()), key=lambda x: x[1],reverse=True)[:MAX_BAG_SIZE]
-        bag = [x[0] for x in bag]
-
-        bag_indexes = {}
-        for w in range(len(bag)):
-            bag_indexes[bag[w]] = w
-        return bag, bag_indexes
-
-
-    def clean_text(self,X):
-        translator = str.maketrans('', '', string.punctuation)
-        stop_words_set = set(stop_words.stop_words)
-        clean_X = []
-        for line in X:
-            line = line.translate(translator)
-            words = line.split(" ")
-            line = ''.join([w.lower() for w in words if w.lower() not in stop_words_set])
-            clean_X.append(line)
-        return clean_X
 
     def split_train_test(self, X, y):
         indx = np.arange(len(X))
@@ -223,8 +153,6 @@ class Classifier(object):
 
         return (X_train, Y_train), (X_test, Y_test)
 
-
-#train
 def train(X,Y):
     #clf = svm.SVC()
     clf = RandomForestClassifier(n_estimators=10, max_depth=10, random_state=0)
@@ -263,25 +191,7 @@ def visualize_classifier(model):
     call(['dot', '-Tpng', 'tree.dot', '-o', 'tree.png', '-Gdpi=600'])
 
 if __name__ == "__main__":
-    # print("start")
     c = Classifier()
-    # X,y = load_dataset()
-    # X = c.clean_text(X)
-    # #hist = c.create_histogram(X)
-    # #hist = sorted(list(hist.items()), key=lambda x: x[1],reverse=True)
-    # #print(hist)
-    #
-    #
-    # forest,vectorizer = c.train(X,y)
-    #
-    # l = ["Yes to Europe, No to Thailand Do Political Considerations Influence Israel's List of Travel Warnings?",
-    #                  "Israel poised to build 7,000 homes beyond the Green Line",
-    #      "At least 35 killed in airstrike on mosque in northern Syria, first responders say",
-    #      "PM wins libel suit over claim his wife kicked him out of car"]
-    # l = c.clean_text(l)
-    # test = np.array(l)
-    # test_data_features = vectorizer.transform(test)
-    # print(forest.predict(test_data_features))
     X,Y=c.create_features_and_tags()
     (X_train,Y_train),(X_valid,Y_valid) = c.split_train_test(X, Y)
     print('loss rate', loss(X_valid,Y_valid,X_train,Y_train))
