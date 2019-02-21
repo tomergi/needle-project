@@ -12,6 +12,12 @@ HORROR = 'horror'
 OPEN_WORLD = 'open world'
 MMO = 'mmo'
 
+VIDEO = 'video games'
+BOARD = 'board games'
+CARDS = 'cards'
+
+domain = [VIDEO, BOARD, CARDS]
+
 
 categories = [ACTION, ADVENTURE, ROLE_PLAYING, SIMULATION, STRATEGY, SPORT, CASUAL, EDU, RELIGION, EXERECISE, HORROR, OPEN_WORLD, MMO]
 
@@ -27,8 +33,3 @@ DBoW = {y[i]: x for x, y in subcategoreis.items() for i in range(len(y))}
 DBoW2 = {x:x for x in categories}
 DBoW = {**DBoW2, **DBoW}
 
-if __name__ == "__main__":
-	# print(subcategoreis)
-
-	for key in sorted(DBoW.items()):
-		print(key)
