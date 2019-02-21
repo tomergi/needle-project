@@ -5,6 +5,7 @@ __pycache__/
 *.xml
 .idea/
 *.json
+*.csv
 # C extensions
 *.so
 
