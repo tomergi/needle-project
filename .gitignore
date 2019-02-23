@@ -4,8 +4,7 @@ __pycache__/
 *$py.class
 *.xml
 .idea/
-*.json
-*.csv
+data/
 # C extensions
 *.so
 
