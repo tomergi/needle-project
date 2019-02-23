@@ -9,7 +9,8 @@ import re
 import random
 
 
-CURRENCY_DICT = {
+CURRENCY_CONVERSION_DICT = {
+    '$': 1.0,
     '€': 1.13,
     '£': 1.31,
 }
@@ -24,7 +25,7 @@ MIN_WAIT_TIME, MAX_WAIT_TIME = (5, 5)
 RE_TABULAR_SECTION = re.compile("\s+(?:[A-Za-z]+)\s+(\d+)\s+")
 PARSE_MONEY_STR = "([$¢£¤¥֏؋৲৳৻૱௹฿៛\u20a0-\u20bd\ua838\ufdfc\ufe69\uff04\uffe0\uffe1\uffe5\uffe6])([\d,]+)"
 RE_PARSE_MONEY = re.compile(PARSE_MONEY_STR)
-RE_GOAL = re.compile("pledged\sof\s"+PARSE_MONEY_STR+"\sgoal")
+# RE_GOAL = re.compile("pledged\sof\s"+PARSE_MONEY_STR+"\sgoal")
 RE_PLEDGED = re.compile("\$\s*([\d,]+)")
 RE_BACKERS = re.compile("([\d,]+)\s*backers")
 RE_TIME_LEFT = re.compile("(\w+)\s*(\w+)(?:to\sgo)")
@@ -132,36 +133,44 @@ def extract_num_projects_by_creator(soup):
     return num_projects_text[0:end_idx]
 
 
-def parse_money(currency, amount):
+def parse_money(raw_text):
+    # Sometimes it loads differently like in those 2 cases:
+    if raw_text[0] in CURRENCY_CONVERSION_DICT:  # 'pledged of €20,000 goal'
+        currency, amount = raw_text[0], raw_text[1:]
+    elif raw_text[-1] in CURRENCY_CONVERSION_DICT:
+        raw_text = raw_text.replace('.', ',')  # 'pledged of 20.000€goal'
+        currency, amount = raw_text[-1], raw_text[0:-1]
+    else:
+        raise ValueError("Error with parsing of money: %s" % raw_text)
     amount = amount.replace(',', '')
     amount = float(amount)
-    if currency == '$':
-        amount = amount
-    elif currency == '€':
-        amount = CURRENCY_DICT['€']*amount
-    elif currency == '£':
-        amount = CURRENCY_DICT['£'] * amount
+    if currency in CURRENCY_CONVERSION_DICT:
+        amount = CURRENCY_CONVERSION_DICT[currency] * amount
     else:
         raise ValueError("Non supported currency based project")
     return np.round(amount, decimals=2)
 
 def extract_goal(soup):
     goal_text = soup.find_all('span', attrs={'class': "inline-block-sm hide"})[0].text
-    m = RE_GOAL.match(goal_text)
-    if m:
-        currency = m.group(1)
-        amount = m.group(2)
-        return parse_money(currency, amount)
+    # 'pledged of €20,000 goal'
+    if goal_text.startswith("pledged of ") and goal_text.endswith("goal"):
+        goal_text = goal_text.replace("pledged of ", "").replace("goal", "").replace(".", ",").strip()
+        return parse_money(goal_text)
     else:
         raise ValueError("Could not find goal! ('pledged of...).")
+    # m = RE_GOAL.match(goal_text)
+    # if m:
+    #     currency = m.group(1)
+    #     amount = m.group(2)
+    #     return parse_money(currency, amount)
+    # else:
+    #     raise ValueError("Could not find goal! ('pledged of...).")
 
 def extract_num_pledged(soup):
     num_pledged_text = soup.find_all("span", attrs={'class': "ksr-green-700 inline-block medium type-16 type-24-md"})[0].text
     m = RE_PARSE_MONEY.match(num_pledged_text)
     if m:
-        currency = m.group(1)
-        amount = m.group(2)
-        return parse_money(currency, amount)
+        return parse_money(num_pledged_text)
     else:
         raise ValueError("Could not find pledged amount.")
 
@@ -181,8 +190,12 @@ def extract_time_left(soup):
 
 
 def extract_project_we_love(soup):
-    result = soup.find_all('div', attrs={'class': "col-full"})
-    print(result)
+    result = soup.find_all('div', attrs={'class': "py2 py3-lg flex items-center auto-scroll-x"})[0]
+    children = result.find_all('span', attrs={"class": "ml1"})
+    for c in children:
+        if "Project We Love" in c.text():
+            return True
+    return False
 
 
 def parse_page(soup):
@@ -197,8 +210,8 @@ def parse_page(soup):
     item['num_pledged'] = extract_num_pledged(soup)
     item['goal'] = extract_goal(soup)
     item['timeleft'] = extract_time_left(soup)
-    item['category'], item['subcategory'] = extract_category_subcategory(soup)
     item['project_we_love'] = extract_project_we_love(soup)
+    item['category'], item['subcategory'] = extract_category_subcategory(soup)
     return item
 
 
