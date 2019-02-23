@@ -6,7 +6,7 @@ from nltk.stem import porter
 from datetime import datetime
 import lxml
 import lxml.html
-
+from get_data import load_dataset
 fail = 0
 success = 1
 TRAIN_FRAC = 0.75
@@ -26,12 +26,12 @@ class Classifier(object):
         pass
 
     def create_features_and_tags(self):
-        items, y = load_dataset()
+        items, y = load_dataset("./data/usd_Games_big.json", max_items=MAX_ITEMS)
         X = np.array([]).reshape(len(items), 0)
         # X = self.add_titles(X, items)
         X = self.add_goal(X, items)
         X = self.add_time_period(X, items)
-        # X = self.add_description(X, items)
+        X = self.add_description(X, items)
         X = self.add_reward_num(X, items)
         return X, np.array(y)
 
