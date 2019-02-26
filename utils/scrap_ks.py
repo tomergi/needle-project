@@ -7,6 +7,7 @@ import urllib.parse
 from time import sleep
 import re
 import random
+import base64
 
 
 CURRENCY_CONVERSION_DICT = {
@@ -220,6 +221,56 @@ def parse_page(soup):
 def scrap_from_file(fp):
     pass
 
+
+REWARD_PRICE_RE = re.compile(r".*[\d,.]+.*")
+def extract_from_json_line(json_line):
+    raw_html = json_line['Text'].decode('utf-8')
+    soup = BeautifulSoup(raw_html, 'html.parser')
+    item = {}
+    item['url'] = json_line['url']
+    item['title'] = json_line['Title']
+    item['creator'] = json_line['Creator']
+    item['timeleft'] = json_line['DaysToGo']
+    csv_row = json_line['csv_row']
+    index, ID,name,category,main_category,currency,deadline,goal,launched,pledged,state,backers,country,usd_pledged,usd_pledged_real,usd_goal_real = csv_row
+    start = datetime.strptime(launched, "%Y-%m-%d %H:%M:%S")
+    end = datetime.strptime(deadline, "%Y-%m-%d")
+    td = (end - start).total_seconds()
+    td /= 3600  # in hours
+    item['hours_duration'] = td
+    item['state'] = state
+    item['goal'] = usd_goal_real
+    item['category'] = main_category
+    item['subcategory'] = category
+    rewards = []
+    for reward in json_line['rewards']:
+        reward_dict = {}
+        reward_dict['id'] = reward['id']
+        match = REWARD_PRICE_RE.match(reward['Price'])
+        if not match:
+            print("could not find reward price in string:", reward['Price'])
+        else:
+            reward_dict['price'] = float(match.group(1).replace(",",""))
+        rewards.append(reward_dict)
+    item['rewards'] = rewards
+
+
+    item['title'], item['description'] = extract_title_and_description(soup)
+    item['num_updates'] = extract_num_updates(soup)
+    item['num_comments'] = extract_num_comments(soup)
+    item['country'], item['subcountry'], item['city'] = extract_country_subcountry_city(soup)
+    item['creator'] = extract_creator(soup)
+    item['num_projects_by_creator'] = extract_num_projects_by_creator(soup)
+    item['num_backers'] = extract_num_backers(soup)
+    item['num_pledged'] = extract_num_pledged(soup)
+    item['goal'] = extract_goal(soup)
+    item['timeleft'] = extract_time_left(soup)
+    item['project_we_love'] = extract_project_we_love(soup)
+    item['category'], item['subcategory'] = extract_category_subcategory(soup)
+    #item['is_successful'] = extract_is_successful(soup)
+    #item['rewards'] = extract_rewards(soup)
+    return item
+    
 
 # def run(base_url):
 #     all_items = {}
