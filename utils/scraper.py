@@ -26,7 +26,7 @@ OUTPUT_JSON_FILE = os.path.join(CURRENT_DIR, 'output.json')
 MIN_WAIT_TIME, MAX_WAIT_TIME = (5, 5)
 
 # This supposed to capture (Updates <Num>) | (Comments <Num>)
-RE_TABULAR_SECTION = re.compile("\s+(?:[A-Za-z]+)\s+(\d+)\s+")
+RE_TABULAR_SECTION = re.compile("\s+(?:[A-Za-z]+)\s+([\d,]+)\s+")
 PARSE_MONEY_STR = "([$¢£¤¥֏؋৲৳৻૱௹฿៛\u20a0-\u20bd\ua838\ufdfc\ufe69\uff04\uffe0\uffe1\uffe5\uffe6])([\d,]+)"
 RE_PARSE_MONEY = re.compile(PARSE_MONEY_STR)
 # RE_GOAL = re.compile("pledged\sof\s"+PARSE_MONEY_STR+"\sgoal")
@@ -107,8 +107,8 @@ def extract_num_updates(soup):
     num_updates_text = soup.find_all('a', attrs={'class': 'js-load-project-updates'})[0].text
     m = RE_TABULAR_SECTION.match(num_updates_text)
     if m:
-        num_updates = m.group(1)
-        return num_updates
+        num_updates = m.group(1).replace(',', '')
+        return int(num_updates)
     else:
         raise ValueError("Could not find number of updates!")
 
@@ -117,8 +117,8 @@ def extract_num_comments(soup):
     num_comments_text = soup.find_all('a', attrs={'class': 'js-load-project-comments'})[0].text
     m = RE_TABULAR_SECTION.match(num_comments_text)
     if m:
-        num_comments = m.group(1)
-        return num_comments
+        num_comments = m.group(1).replace(',', '')
+        return int(num_comments)
     else:
         raise ValueError("Could not find number of comments!")
 
@@ -247,10 +247,11 @@ def parse_page(soup):
 def scrap_from_file(input_file_path, output_file_path):
     with open(input_file_path, mode='r') as inp_fp, open(output_file_path, mode='w') as out_fp:
         last_result = None
-        for line in inp_fp:
+        for i, line in enumerate(inp_fp, 1):
             if line.strip() == '[':
                 continue
             try:
+                print("\rCurrently %d" % i, end="")
                 dict_item = json.loads(line.strip()[:-1])
                 result = extract_from_json_line(dict_item)
 
@@ -262,16 +263,16 @@ def scrap_from_file(input_file_path, output_file_path):
                     out_fp.write(",\n")
                 last_result = result
             except Exception as e:
-                print(line.strip()[:5], "...", line.strip()[-5:])
-                raise
+                print("\n\turl:", dict_item['url'])
                 continue
+                # raise
 
         if last_result:
             out_fp.write(json.dumps(last_result))
             out_fp.write("\n]")
 
 
-REWARD_PRICE_RE = re.compile(r".*([\d,.]+).*")
+REWARD_PRICE_RE = re.compile(r"(?:US)?\$\s*([\d,.]+)\s*")
 def extract_from_json_line(json_line):
     raw_html = base64.b64decode(json_line['Text']).decode('utf-8')
     soup = BeautifulSoup(raw_html, 'html.parser')
@@ -285,6 +286,7 @@ def extract_from_json_line(json_line):
     csv_row = json_line['csv_row']
     index, ID,name,category,main_category,currency,deadline,goal,\
         launched,pledged,state,backers,country,usd_pledged,usd_pledged_real,usd_goal_real = csv_row
+    # item['country'], item['subcountry'], item['city'] = extract_country_subcountry_city(soup)
     start = datetime.strptime(launched, "%Y-%m-%d %H:%M:%S")
     end = datetime.strptime(deadline, "%Y-%m-%d")
     td = (end - start).total_seconds()
@@ -305,8 +307,7 @@ def extract_from_json_line(json_line):
             reward_dict['price'] = float(match.group(1).replace(",",""))
         rewards.append(reward_dict)
     item['rewards'] = rewards
-    item['num_pledged'] = pledged
-
+    item['num_pledged'] = float(pledged)
 
     item['title'], item['description'] = extract_title_and_description(soup)
     item['num_updates'] = extract_num_updates(soup)
