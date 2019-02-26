@@ -13,6 +13,8 @@ import lxml.html
 import deterministic_bag_of_words
 from enum import Enum
 import re
+from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
+
 
 fail=0
 success=1
@@ -77,12 +79,12 @@ class Classifier(object):
     def create_features_and_tags(self):
         items, y = load_dataset()
         X = np.array([]).reshape(len(items), 0)
-        # X = self.add_titles(X, items)
-        # X = self.add_goal(X, items)
-        # X = self.add_time_period(X, items)
+        X = self.add_titles(X, items)
+        X = self.add_goal(X, items)
+        X = self.add_time_period(X, items)
         # X = self.add_description(X, items)
-        # X = self.add_reward_num(X, items)
-        X = self.add_bag_of_words(X, items)
+        X = self.add_reward_num(X, items)
+        # X = self.add_bag_of_words(X, items)
         return X, np.array(y)
 
     def add_titles(self, X, items):
@@ -191,7 +193,7 @@ def getLable(clf, example):
 #validation
 def loss(X_valid,Y_valid,X_train,Y_train):
     clf = train(X_train, Y_train)
-    # visualize_classifier(clf)
+    visualize_classifier(clf)
     sum = 0
     for example in range( len(X_valid)):
         if(getLable(clf,X_valid[example]) !=Y_valid[example]):
@@ -199,19 +201,29 @@ def loss(X_valid,Y_valid,X_train,Y_train):
 
     return sum/len(X_valid)
 
+def magic(number):
+    return str(number)
+
 def visualize_classifier(model):
     # Extract single tree
-    estimator = model.estimators_[0]
+    for i in range(len(model.estimators_)):
+        title = "tree " + str(i)
+        estimator = model.estimators_[i]
+        features = estimator.feature_importances_
+        for j in range(features):
+            if features[j] > 0:
+                name_of_feature = magic(j)
+                magnitute_of_feature = features[j]
 
-    from sklearn.tree import export_graphviz
-    # Export as dot file
-    export_graphviz(estimator, out_file='tree.dot',
-                    rounded = True, proportion = False,
-                    precision = 2, filled = True, class_names=["fail", "success"])
 
-    # Convert to png using system command (requires Graphviz)
-    from subprocess import call
-    call(['dot', '-Tpng', 'tree.dot', '-o', 'tree.png', '-Gdpi=600'])
+
+        from sklearn.tree import export_graphviz
+        # Export as dot file
+        # export_graphviz(estimator, out_file=title + '.dot', rounded = True, proportion = False, precision = 2, filled = True, class_names=["fail", "success"])
+
+        # Convert to png using system command (requires Graphviz)
+        # from subprocess import call
+        # call(['dot', '-Tpng', title + '.dot', '-o', title + '.png', '-Gdpi=1080'])
 
 if __name__ == "__main__":
     c = Classifier()
