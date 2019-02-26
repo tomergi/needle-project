@@ -1,10 +1,14 @@
 import json
 import numpy as np
+import pandas
+
+
+def split_data(X, Y, ratio):
+    assert 0 < ratio < 1, "Ratio must in range (0,1)"
+
+
 
 def load_dataset(file_path, max_items):
-    global successful_projects
-    items = []
-    pred = []
     with open(file_path, 'r') as fd:
         for row in fd:
             try:
@@ -39,3 +43,5 @@ def load_dataset(file_path, max_items):
                 continue
 
     return items, np.array(pred)
+
+
