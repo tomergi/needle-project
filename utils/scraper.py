@@ -83,11 +83,23 @@ def load_page(url):
     return soup
 
 
+def extract_title(soup):
+    pass
+
+
+def extract_description(soup):
+    pass
+
+
 def extract_title_and_description(soup):
     title_desc_cont = soup.find_all('div', attrs={"class": "col-20-24 block-md order-2-md col-lg-14-24"})
-    elems = list(title_desc_cont[0].find_all())[:-1]
-    title = elems[0].text
-    description = elems[1].text
+    if len(title_desc_cont) > 0:  # if unsuccessful
+        elems = list(title_desc_cont[0].find_all())[:-1]
+        title = elems[0].text
+        description = elems[1].text
+    else:  # if successful
+        title = soup.find_all('div', attrs={"class": "NS_project_profile__title"})[0].text.strip()
+        description = soup.find_all('div', attrs={"class": "NS_project_profiles__blurb"})[0].text.strip()
     return title, description
 
 
@@ -127,14 +139,19 @@ def extract_category_subcategory(soup):
     return result.text
 
 def extract_creator(soup):
-    creator = soup.find_all('span', attrs={'class': "soft-black ml2 ml0-md break-word"})[0].text
+    creator = soup.find_all('span', attrs={'class': "soft-black ml2 ml0-md break-word"})
+    if len(creator) == 0:  # if project unsuccesful
+        creator = soup.find_all('div', attrs={"class": "creator-name"})[0].text.strip()
+        creator = creator[:creator.index('\n')]
+    else:  # if successful
+        creator = creator[0].text
     return creator
 
 
-def extract_num_projects_by_creator(soup):
-    num_projects_text = soup.find_all('a', attrs={'class': "dark-grey-500 keyboard-focusable"})[0].text  # "<Num> created"
-    end_idx = num_projects_text.index(' ')
-    return num_projects_text[0:end_idx]
+# def extract_num_projects_by_creator(soup):
+#     num_projects_text = soup.find_all('a', attrs={'class': "dark-grey-500 keyboard-focusable"})[0].text  # "<Num> created"
+#     end_idx = num_projects_text.index(' ')
+#     return num_projects_text[0:end_idx]
 
 
 def parse_money(raw_text):
@@ -202,6 +219,11 @@ def extract_project_we_love(soup):
     return False
 
 
+def extract_about(soup):
+    result = soup.find_all('div', attrs={"class": "full-description js-full-description responsive-media formatted-lists"})
+    return result[0].text.strip()
+
+
 def parse_page(soup):
     item = {}
     item['title'], item['description'] = extract_title_and_description(soup)
@@ -209,15 +231,16 @@ def parse_page(soup):
     item['num_comments'] = extract_num_comments(soup)
     item['country'], item['subcountry'], item['city'] = extract_country_subcountry_city(soup)
     item['creator'] = extract_creator(soup)
-    item['num_projects_by_creator'] = extract_num_projects_by_creator(soup)
+    # item['num_projects_by_creator'] = extract_num_projects_by_creator(soup)
     item['num_backers'] = extract_num_backers(soup)
     item['num_pledged'] = extract_num_pledged(soup)
     item['goal'] = extract_goal(soup)
-    item['timeleft'] = extract_time_left(soup)
     item['project_we_love'] = extract_project_we_love(soup)
     item['category'], item['subcategory'] = extract_category_subcategory(soup)
+    item['about'] = extract_about(soup)
+    item['timeleft'] = extract_time_left(soup)
     item['rewards'] = extract_rewards(soup)
-    item['is_successful'] = extract_is_successful(soup)
+    item['state'] = extract_is_successful(soup)
     return item
 
 
@@ -260,7 +283,8 @@ def extract_from_json_line(json_line):
     else:
         item['timeleft'] = 0
     csv_row = json_line['csv_row']
-    index, ID,name,category,main_category,currency,deadline,goal,launched,pledged,state,backers,country,usd_pledged,usd_pledged_real,usd_goal_real = csv_row
+    index, ID,name,category,main_category,currency,deadline,goal,\
+        launched,pledged,state,backers,country,usd_pledged,usd_pledged_real,usd_goal_real = csv_row
     start = datetime.strptime(launched, "%Y-%m-%d %H:%M:%S")
     end = datetime.strptime(deadline, "%Y-%m-%d")
     td = (end - start).total_seconds()
@@ -286,10 +310,11 @@ def extract_from_json_line(json_line):
 
     item['title'], item['description'] = extract_title_and_description(soup)
     item['num_updates'] = extract_num_updates(soup)
+    item['about'] = extract_about(soup)
     item['num_comments'] = extract_num_comments(soup)
     item['creator'] = extract_creator(soup)
-    item['num_projects_by_creator'] = extract_num_projects_by_creator(soup)
-    item['num_backers'] = extract_num_backers(soup)
+    # item['num_projects_by_creator'] = extract_num_projects_by_creator(soup)
+    item['num_backers'] = backers
     #item['is_successful'] = extract_is_successful(soup)
     #item['rewards'] = extract_rewards(soup)
     return item

@@ -86,44 +86,40 @@ class RandomForest(Classifier):
             warm_start=warm_start,
             class_weight=class_weight,
         )
+        self.preprocess()
 
     def train(self):
         self.clf.fit(self.X, self.Y)
 
     def preprocess(self):
-        pass
+        X = np.array([]).reshape(len(self.X), 0)
+        # X = self.add_titles(X, items)
+        X = self.add_goal(X, self.X)
+        X = self.add_time_period(X, self.X)
+        X = self.add_description(X, self.X)
+        X = self.add_reward_num(X, self.X)
+        self.X = X
+        self.Y = np.array(self.Y)
 
     def predict(self, X):
         y_hats = self.clf.predict(X)
         return y_hats
 
 
-
-    def visualize(self):
-        # Extract single tree
-        # estimator = model.estimators_[0]
-        #
-        # from sklearn.tree import export_graphviz
-        # # Export as dot file
-        # export_graphviz(estimator, out_file='tree.dot',
-        #                 rounded=True, proportion=False,
-        #                 precision=2, filled=True, class_names=["fail", "success"])
-        #
-        # # Convert to png using system command (requires Graphviz)
-        # from subprocess import call
-        # call(['dot', '-Tpng', 'tree.dot', '-o', 'tree.png', '-Gdpi=600'])
-        pass
-
-
-    def create_features_and_tags(self):
-        items, y = load_dataset("./data/usd_Games_big.json", max_items=MAX_ITEMS)
-        X = np.array([]).reshape(len(items), 0)
-        # X = self.add_titles(X, items)
-        X = self.add_goal(X, items)
-        X = self.add_time_period(X, items)
-        X = self.add_description(X, items)
-        X = self.add_reward_num(X, items)
-        return X, np.array(y)
+    # def visualize(self):
+    #     # Extract single tree
+    #     # estimator = model.estimators_[0]
+    #     #
+    #     # from sklearn.tree import export_graphviz
+    #     # # Export as dot file
+    #     # export_graphviz(estimator, out_file='tree.dot',
+    #     #                 rounded=True, proportion=False,
+    #     #                 precision=2, filled=True, class_names=["fail", "success"])
+    #     #
+    #     # # Convert to png using system command (requires Graphviz)
+    #     # from subprocess import call
+    #     # call(['dot', '-Tpng', 'tree.dot', '-o', 'tree.png', '-Gdpi=600'])
+    #     pass
 
     def add_titles(self, X, items):
         titles = [i['csv_name'] for i in items]
