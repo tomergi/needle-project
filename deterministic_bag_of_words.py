@@ -12,12 +12,12 @@ HORROR = 'horror'
 OPEN_WORLD = 'open world'
 MMO = 'mmo'
 
-VIDEO = 'video games'
-BOARD = 'board games'
-CARDS = 'cards'
+VIDEO = 'Video Games'
+TABLE = 'Tabletop Games'
+CARDS = "Playing Cards"
 
-domain = [VIDEO, BOARD, CARDS]
 
+domain = [VIDEO, TABLE, CARDS]
 
 categories = [ACTION, ADVENTURE, ROLE_PLAYING, SIMULATION, STRATEGY, SPORT, CASUAL, EDU, RELIGION, EXERECISE, HORROR, OPEN_WORLD, MMO]
 
