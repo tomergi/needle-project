@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 import os
+import json
 import pandas as pd
 import numpy as np
 import urllib.request
@@ -213,13 +214,32 @@ def parse_page(soup):
     item['timeleft'] = extract_time_left(soup)
     item['project_we_love'] = extract_project_we_love(soup)
     item['category'], item['subcategory'] = extract_category_subcategory(soup)
-    item['is_successful'] = extract_is_successful(soup)
     item['rewards'] = extract_rewards(soup)
+    item['is_successful'] = extract_is_successful(soup)
     return item
 
 
-def scrap_from_file(fp):
-    pass
+def scrap_from_file(input_file_path, output_file_path):
+    with open(input_file_path, mode='r') as inp_fp, open(output_file_path, mode='w') as out_fp:
+        line = inp_fp.readline()
+        if line is not None:
+            out_fp.writelines('{\n')
+        line = inp_fp.readline()
+        while line is not None:
+            line = line.strip()[-1]  # either ',' or '}'
+
+            dict_item = json.loads(line)
+            result = extract_from_json_line(dict_item)
+
+            line = inp_fp.readline()
+
+            s = json.dumps(result)
+            if line is not None:
+                s += ','
+            s += '\n'
+            out_fp.write(s)
+
+        out_fp.write('}\n')
 
 
 REWARD_PRICE_RE = re.compile(r".*[\d,.]+.*")
@@ -294,8 +314,10 @@ def extract_from_json_line(json_line):
 
 
 if __name__ == '__main__':
-    # run(base_url=base_url)
-    link1 = "https://www.kickstarter.com/projects/13/1000056157"
-    link2 = "https://www.kickstarter.com/projects/horriblegames/alonetm-2nd-print-run-with-new-contents-and-locali?ref=discovery_category"
-    soup = load_page(link2)
-    parsed = parse_page(soup)
+
+    # link1 = "https://www.kickstarter.com/projects/13/1000056157"
+    # link2 = "https://www.kickstarter.com/projects/horriblegames/alonetm-2nd-print-run-with-new-contents-and-locali?ref=discovery_category"
+    # soup = load_page(link2)
+    # parsed = parse_page(soup)
+    file_path = "/home/ben/Documents/Git/needle-project/data/usd_Games_base64.json"
+    scrap_from_file(file_path)
