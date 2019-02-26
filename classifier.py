@@ -10,6 +10,9 @@ from nltk.stem import porter
 from datetime import datetime
 import lxml
 import lxml.html
+import deterministic_bag_of_words
+from enum import Enum
+import re
 
 fail=0
 success=1
@@ -20,7 +23,7 @@ MAX_ITEMS = 15000
 
 successful_projects = 0
 
-def load_dataset(filename='usd_Games_big.json'):
+def load_dataset(filename='result_games.json'):
     global successful_projects
     items = []
     pred = []
@@ -44,6 +47,7 @@ def load_dataset(filename='usd_Games_big.json'):
                 item['csv_usd_pledged'] = csv_usd_pledged
                 item['csv_pledged_real'] = csv_pledged_real
                 item['csv_usd_goal_real'] = float(csv_usd_goal_real)
+
                 if item['csv_state'] == 'canceled':
                     continue
                 items.append(item)
@@ -74,10 +78,11 @@ class Classifier(object):
         items, y = load_dataset()
         X = np.array([]).reshape(len(items), 0)
         # X = self.add_titles(X, items)
-        X = self.add_goal(X, items)
-        X = self.add_time_period(X, items)
+        # X = self.add_goal(X, items)
+        # X = self.add_time_period(X, items)
         # X = self.add_description(X, items)
-        X = self.add_reward_num(X, items)
+        # X = self.add_reward_num(X, items)
+        X = self.add_bag_of_words(X, items)
         return X, np.array(y)
 
     def add_titles(self, X, items):
@@ -104,6 +109,23 @@ class Classifier(object):
         periods_array = np.array([periods]).T
         
         X = np.concatenate((X, periods_array), axis=1)
+        return X
+
+    def add_bag_of_words(self, X, items):
+        bag_of_words = deterministic_bag_of_words.DBoW
+        categories_enum = Enum('categories', deterministic_bag_of_words.categories)
+        matrix_of_words = []
+        for i in range(len(X)):
+            words_list = [0]*len(categories_enum)
+            description = items[i]['description'].lower()
+            result = re.sub(r'-', ' ', description)
+            result = re.sub(r'[^A-Za-z 1-9]', '', result)
+            for key in bag_of_words:
+                if key in result:
+                    words_list[categories_enum[bag_of_words[key]].value - 1] = 1
+            matrix_of_words.append(words_list)
+        npmatrix = np.array(matrix_of_words).T
+        X = np.concatenate((X, npmatrix), axis=1)
         return X
 
     def add_description(self, X, items):
@@ -165,6 +187,7 @@ def train(X,Y):
     return clf
 def getLable(clf, example):
     return clf.predict(np.array([example]))
+
 #validation
 def loss(X_valid,Y_valid,X_train,Y_train):
     clf = train(X_train, Y_train)
