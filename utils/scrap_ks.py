@@ -9,6 +9,8 @@ from time import sleep
 import re
 import random
 import base64
+import argparse
+from datetime import datetime
 
 
 CURRENCY_CONVERSION_DICT = {
@@ -221,36 +223,42 @@ def parse_page(soup):
 
 def scrap_from_file(input_file_path, output_file_path):
     with open(input_file_path, mode='r') as inp_fp, open(output_file_path, mode='w') as out_fp:
-        line = inp_fp.readline()
-        if line is not None:
-            out_fp.writelines('{\n')
-        line = inp_fp.readline()
-        while line is not None:
-            line = line.strip()[-1]  # either ',' or '}'
+        last_result = None
+        for line in inp_fp:
+            if line.strip() == '[':
+                continue
+            try:
+                dict_item = json.loads(line.strip()[:-1])
+                result = extract_from_json_line(dict_item)
 
-            dict_item = json.loads(line)
-            result = extract_from_json_line(dict_item)
+                if not last_result and result:
+                    out_fp.write('[\n')
 
-            line = inp_fp.readline()
+                if last_result:
+                    out_fp.write(json.dumps(last_result))
+                    out_fp.write(",\n")
+                last_result = result
+            except Exception as e:
+                print(line.strip()[:5], "...", line.strip()[-5:])
+                raise
+                continue
 
-            s = json.dumps(result)
-            if line is not None:
-                s += ','
-            s += '\n'
-            out_fp.write(s)
-
-        out_fp.write('}\n')
+        if last_result:
+            out_fp.write(json.dumps(last_result))
+            out_fp.write("\n]")
 
 
-REWARD_PRICE_RE = re.compile(r".*[\d,.]+.*")
+REWARD_PRICE_RE = re.compile(r".*([\d,.]+).*")
 def extract_from_json_line(json_line):
-    raw_html = json_line['Text'].decode('utf-8')
+    raw_html = base64.b64decode(json_line['Text']).decode('utf-8')
     soup = BeautifulSoup(raw_html, 'html.parser')
     item = {}
     item['url'] = json_line['url']
     item['title'] = json_line['Title']
-    item['creator'] = json_line['Creator']
-    item['timeleft'] = json_line['DaysToGo']
+    if 'DaysToGo' in json_line:
+        item['timeleft'] = json_line['DaysToGo']
+    else:
+        item['timeleft'] = 0
     csv_row = json_line['csv_row']
     index, ID,name,category,main_category,currency,deadline,goal,launched,pledged,state,backers,country,usd_pledged,usd_pledged_real,usd_goal_real = csv_row
     start = datetime.strptime(launched, "%Y-%m-%d %H:%M:%S")
@@ -273,20 +281,15 @@ def extract_from_json_line(json_line):
             reward_dict['price'] = float(match.group(1).replace(",",""))
         rewards.append(reward_dict)
     item['rewards'] = rewards
+    item['num_pledged'] = pledged
 
 
     item['title'], item['description'] = extract_title_and_description(soup)
     item['num_updates'] = extract_num_updates(soup)
     item['num_comments'] = extract_num_comments(soup)
-    item['country'], item['subcountry'], item['city'] = extract_country_subcountry_city(soup)
     item['creator'] = extract_creator(soup)
     item['num_projects_by_creator'] = extract_num_projects_by_creator(soup)
     item['num_backers'] = extract_num_backers(soup)
-    item['num_pledged'] = extract_num_pledged(soup)
-    item['goal'] = extract_goal(soup)
-    item['timeleft'] = extract_time_left(soup)
-    item['project_we_love'] = extract_project_we_love(soup)
-    item['category'], item['subcategory'] = extract_category_subcategory(soup)
     #item['is_successful'] = extract_is_successful(soup)
     #item['rewards'] = extract_rewards(soup)
     return item
@@ -314,10 +317,21 @@ def extract_from_json_line(json_line):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--scraped_json", action="store_true", help="input is a scraped json using kickstarter_scrape")
+    parser.add_argument("input", help="input url or file")
+    parser.add_argument("output", help="file to write with processed data")
+    args = parser.parse_args()
 
     # link1 = "https://www.kickstarter.com/projects/13/1000056157"
     # link2 = "https://www.kickstarter.com/projects/horriblegames/alonetm-2nd-print-run-with-new-contents-and-locali?ref=discovery_category"
     # soup = load_page(link2)
     # parsed = parse_page(soup)
-    file_path = "/home/ben/Documents/Git/needle-project/data/usd_Games_base64.json"
-    scrap_from_file(file_path)
+    if args.scraped_json:
+        scrap_from_file(args.input, args.output)
+    else:
+        soup = load_page(args.input)
+        parsed = parse_page(soup)
+        json_out = json.dumps([parsed])
+        with open(args.output, "w") as outfd:
+            outfd.write(json_out)
