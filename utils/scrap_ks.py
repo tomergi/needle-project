@@ -212,6 +212,8 @@ def parse_page(soup):
     item['timeleft'] = extract_time_left(soup)
     item['project_we_love'] = extract_project_we_love(soup)
     item['category'], item['subcategory'] = extract_category_subcategory(soup)
+    item['is_successful'] = extract_is_successful(soup)
+    item['rewards'] = extract_rewards(soup)
     return item
 
 
