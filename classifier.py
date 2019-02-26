@@ -14,7 +14,10 @@ import deterministic_bag_of_words
 from enum import Enum
 import re
 from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
-
+import matplotlib.pyplot as plt
+import pandas as pd
+from os import path
+from PIL import Image
 
 fail=0
 success=1
@@ -207,19 +210,28 @@ def magic(number):
 def visualize_classifier(model):
     # Extract single tree
     for i in range(len(model.estimators_)):
-        title = "tree " + str(i)
+        title = "word cloud " + str(i)
         estimator = model.estimators_[i]
         features = estimator.feature_importances_
-        for j in range(features):
+        text_dict = {}
+        text_list = []
+        for j in range(len(features)):
+            name_of_feature = magic(j)
             if features[j] > 0:
-                name_of_feature = magic(j)
-                magnitute_of_feature = features[j]
+                magnitude_of_feature = features[j]
+                text_dict[name_of_feature] = magnitude_of_feature
+            text_list.append(name_of_feature)
+        word_cloud = WordCloud(background_color="white").generate_from_frequencies(text_dict)
+        # word_cloud.to_file(title + ".png")
+        plt.imshow(word_cloud, interpolation='bilinear')
+        plt.axis("off")
+        plt.savefig(title + ".png", format="PNG", dpi=1080)
+        plt.close()
 
-
-
+        title = "tree " + str(i)
         from sklearn.tree import export_graphviz
         # Export as dot file
-        # export_graphviz(estimator, out_file=title + '.dot', rounded = True, proportion = False, precision = 2, filled = True, class_names=["fail", "success"])
+        export_graphviz(estimator, out_file=title + '.dot', rounded = True, proportion = False, precision = 2, filled = True, class_names=["fail", "success"], feature_names=text_list)
 
         # Convert to png using system command (requires Graphviz)
         # from subprocess import call
