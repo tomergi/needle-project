@@ -52,7 +52,7 @@ def load_dataset(filename='result_games.json'):
                 item['csv_usd_pledged'] = csv_usd_pledged
                 item['csv_pledged_real'] = csv_pledged_real
                 item['csv_usd_goal_real'] = float(csv_usd_goal_real)
-
+                item['description'] = "bla bla bla, rpg is magic rts is sucks"
                 if item['csv_state'] == 'canceled':
                     continue
                 items.append(item)
@@ -81,13 +81,14 @@ class Classifier(object):
 
     def create_features_and_tags(self):
         items, y = load_dataset()
+
         X = np.array([]).reshape(len(items), 0)
         X = self.add_titles(X, items)
         X = self.add_goal(X, items)
         X = self.add_time_period(X, items)
-        # X = self.add_description(X, items)
+        X = self.add_description(X, items)
         X = self.add_reward_num(X, items)
-        # X = self.add_bag_of_words(X, items)
+        X = self.add_bag_of_words(X, items)
         return X, np.array(y)
 
     def add_titles(self, X, items):
@@ -112,7 +113,8 @@ class Classifier(object):
             td /= 3600 # in hours
             periods.append(td)
         periods_array = np.array([periods]).T
-        
+        # print(X.shape, periods_array.shape)
+        # exit(123)
         X = np.concatenate((X, periods_array), axis=1)
         return X
 
@@ -120,7 +122,7 @@ class Classifier(object):
         bag_of_words = deterministic_bag_of_words.DBoW
         categories_enum = Enum('categories', deterministic_bag_of_words.categories)
         matrix_of_words = []
-        for i in range(len(X)):
+        for i in range(len(items)):
             words_list = [0]*len(categories_enum)
             description = items[i]['description'].lower()
             result = re.sub(r'-', ' ', description)
@@ -130,7 +132,9 @@ class Classifier(object):
                     words_list[categories_enum[bag_of_words[key]].value - 1] = 1
             matrix_of_words.append(words_list)
         npmatrix = np.array(matrix_of_words).T
-        X = np.concatenate((X, npmatrix), axis=1)
+        for column in npmatrix:
+            column.shape = (len(column), 1)
+            X = np.concatenate((X, column), axis=1)
         return X
 
     def add_description(self, X, items):
@@ -161,7 +165,7 @@ class Classifier(object):
         for item in items:
             rewards.append(len(item['rewards']))
         rewards = np.array([rewards])
-        print(rewards.shape)
+        # print(rewards.shape)
         X = np.concatenate((X, rewards.T), axis=1)
         return X
 
@@ -195,6 +199,7 @@ def getLable(clf, example):
 
 #validation
 def loss(X_valid,Y_valid,X_train,Y_train):
+    print("calc")
     clf = train(X_train, Y_train)
     visualize_classifier(clf)
     sum = 0
@@ -234,8 +239,8 @@ def visualize_classifier(model):
         export_graphviz(estimator, out_file=title + '.dot', rounded = True, proportion = False, precision = 2, filled = True, class_names=["fail", "success"], feature_names=text_list)
 
         # Convert to png using system command (requires Graphviz)
-        # from subprocess import call
-        # call(['dot', '-Tpng', title + '.dot', '-o', title + '.png', '-Gdpi=1080'])
+        from subprocess import call
+        call(['dot', '-Tpng', title + '.dot', '-o', title + '.png', '-Gdpi=1080'])
 
 if __name__ == "__main__":
     c = Classifier()
