@@ -15,17 +15,18 @@ class IdxToFeature(object):
         self.start_idx = start_idx
         self.end_idx = end_idx
         self.func = get_feature_name_func
+        print(start_idx, end_idx)
 
     def is_in_range(self, i):
         return self.start_idx <= i <= self.end_idx
 
     def get_feature(self, i):
-        return self.func(i)
+        return self.func(i-self.start_idx)
 
 
 def _add_idx_class(X_shape, features_shape, func):
     start = X_shape[1]
-    end = features_shape[1]+start
+    end = (features_shape[1]+start)-1
     o = IdxToFeature(start, end, func)
     IDX_TO_FEATURE_OBJS.append(o)
 
@@ -57,9 +58,9 @@ def _add_goal_pledged_ratio(X, items):
     return np.concatenate((X, ratio), axis=1)
 
 def _add_reward_num(X, items):
-    rewards = np.array([[len(x['rewards']) for x in items]])
+    rewards = np.array([[len(x['rewards']) for x in items]]).T
     _add_idx_class(X_shape=X.shape, features_shape=rewards.shape, func=lambda _: "NumOfRewards")
-    return np.concatenate((X, rewards.T), axis=1)
+    return np.concatenate((X, rewards), axis=1)
 
 def _add_num_updates(X, items):
     num_updates = np.array([[int(i['num_updates']) for i in items]]).T
@@ -194,3 +195,25 @@ def load_dataset(file_path, max_items=-1, remove_keys=None, shuffle=True, train_
 
     (X_train, Y_train), (X_test, Y_test) = _preprocess(items, preds, shuffle, train_split_ratio)
     return (X_train, Y_train), (X_test, Y_test)
+
+
+
+# (X, _), (_, _) = load_dataset("/home/ben/Documents/GitHub/needle-project/dataset/games.json")
+# print('---------------')
+# print('---------------')
+# print('X length: ', X.shape[1])
+# print(get_feature_str_from_col_idx(0))
+# print(get_feature_str_from_col_idx(5))
+# print(get_feature_str_from_col_idx(6))
+# print(get_feature_str_from_col_idx(4999))
+# print(get_feature_str_from_col_idx(5000))
+# print(get_feature_str_from_col_idx(5005))
+# print(get_feature_str_from_col_idx(X.shape[1]-1))
+# from time import sleep
+# sleep(1)
+# print(get_feature_str_from_col_idx(X.shape[1]))
+# for i in range(X.shape[1]):
+#     print(i, get_feature_str_from_col_idx(i))
+
+
+
