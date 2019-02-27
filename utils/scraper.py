@@ -248,7 +248,7 @@ def scrap_from_file(input_file_path, output_file_path):
     with open(input_file_path, mode='r') as inp_fp, open(output_file_path, mode='w') as out_fp:
         last_result = None
         for i, line in enumerate(inp_fp, 1):
-            if line.strip() == '[':
+            if line.strip() == '{':
                 continue
             try:
                 print("\rCurrently %d" % i, end="")
@@ -269,7 +269,7 @@ def scrap_from_file(input_file_path, output_file_path):
 
         if last_result:
             out_fp.write(json.dumps(last_result))
-            out_fp.write("\n]")
+            out_fp.write("\n}")
 
 
 REWARD_PRICE_RE = re.compile(r"(?:US)?\$\s*([\d,.]+)\s*")

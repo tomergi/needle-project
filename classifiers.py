@@ -1,16 +1,4 @@
-from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.ensemble import RandomForestClassifier
-import stop_words
-import numpy as np
-from nltk.stem import porter
-from datetime import datetime
-import lxml
-import lxml.html
-from get_data import load_dataset
-
-MAX_ITEMS = 15000
-
-successful_projects = 0
 
 
 class Classifier(object):
@@ -91,16 +79,6 @@ class RandomForest(Classifier):
     def train(self):
         self.clf.fit(self.X, self.Y)
 
-    def preprocess(self):
-        X = np.array([]).reshape(len(self.X), 0)
-        # X = self.add_titles(X, items)
-        X = self.add_goal(X, self.X)
-        X = self.add_time_period(X, self.X)
-        X = self.add_description(X, self.X)
-        X = self.add_reward_num(X, self.X)
-        self.X = X
-        self.Y = np.array(self.Y)
-
     def predict(self, X):
         y_hats = self.clf.predict(X)
         return y_hats
@@ -121,62 +99,8 @@ class RandomForest(Classifier):
     #     # call(['dot', '-Tpng', 'tree.dot', '-o', 'tree.png', '-Gdpi=600'])
     #     pass
 
-    def add_titles(self, X, items):
-        titles = [i['csv_name'] for i in items]
-        stemmer = porter.PorterStemmer()
-        vectorizer = CountVectorizer(analyzer="word",
-                                     tokenizer=None,
-                                     preprocessor=stemmer.stem,
-                                     stop_words=stop_words.stop_words,
-                                     max_features=50000)
 
-        train_data_features = vectorizer.fit_transform(titles)
-        X = np.concatenate((X, train_data_features.toarray()), axis=1)
-        return X
 
-    def add_time_period(self, X, items):
-        periods = []
-        for i in range(len(X)):
-            start = datetime.strptime(items[i]['csv_launched'], "%Y-%m-%d %H:%M:%S")
-            end = datetime.strptime(items[i]['csv_deadline'], "%Y-%m-%d")
-            td = (end - start).total_seconds()
-            td /= 3600  # in hours
-            periods.append(td)
-        periods_array = np.array([periods]).T
-
-        X = np.concatenate((X, periods_array), axis=1)
-        return X
-
-    def add_description(self, X, items):
-        descriptions = []
-        for item in items:
-            r = lxml.html.fromstring(item['Text'])
-            description = r.xpath("/html/head/meta[contains(@name, 'description')]")[0].attrib['content']
-            descriptions.append(description)
-        stemmer = porter.PorterStemmer()
-        vectorizer = CountVectorizer(analyzer="word",
-                                     tokenizer=None,
-                                     preprocessor=stemmer.stem,
-                                     stop_words=None,
-                                     max_features=50000)
-
-        train_data_features = vectorizer.fit_transform(descriptions)
-        X = np.concatenate((X, train_data_features.toarray()), axis=1)
-        return X
-
-    def add_goal(self, X, items):
-        goals = np.array([[i['csv_usd_goal_real'] for i in items]]).T
-
-        X = np.concatenate((X, goals), axis=1)
-        return X
-
-    def add_reward_num(self, X, items):
-        rewards = []
-        for item in items:
-            rewards.append(len(item['rewards']))
-        rewards = np.array([rewards])
-        X = np.concatenate((X, rewards.T), axis=1)
-        return X
 
 
 

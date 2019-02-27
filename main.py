@@ -1,7 +1,5 @@
 import argparse
-from utils import scraper
-import os
-import get_data
+from utils import scraper, data
 import classifiers
 
 
@@ -24,7 +22,7 @@ def pred_to_str(y):
 
 
 def train_model():
-    X, Y = get_data.load_dataset("./data/games.csv")
+    X, Y = data.load_dataset("./data/games.csv")
     classifiers.RandomForest()
 
 
