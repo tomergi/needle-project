@@ -3,6 +3,10 @@ from utils import scraper, data
 import classifiers
 import numpy as np
 import dill
+from subprocess import call
+from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
+from PIL import Image
+import matplotlib.pyplot as plt
 
 
 def pred_to_str(y):
@@ -20,7 +24,6 @@ def train_model():
     return extractor, classifier
 
 def test_model(classifier, X_test, Y_test):
-    print(X_test)
     predictions = classifier.predict(X_test)
     correct = np.count_nonzero(predictions == Y_test)
     wrong = np.count_nonzero(predictions != Y_test)
@@ -38,6 +41,37 @@ def predict(url, extractor, classifier):
     print("According to the classifier the project result will be %s" % pred_to_str(y_hat))
 
 
+def visualize_classifier(classifier, extractor):
+    # Extract single tree
+    model = classifier.clf
+    for i in range(len(model.estimators_)):
+        title = "word cloud " + str(i)
+        estimator = model.estimators_[i]
+        features = estimator.feature_importances_
+        text_dict = {}
+        text_list = []
+        for j in range(len(features)):
+            name_of_feature = extractor.get_feature_str_from_col_idx(j)
+            if features[j] > 0:
+                magnitude_of_feature = features[j]
+                text_dict[name_of_feature] = magnitude_of_feature
+            text_list.append(name_of_feature)
+        word_cloud = WordCloud(background_color="white").generate_from_frequencies(text_dict)
+        # word_cloud.to_file(title + ".png")
+        plt.imshow(word_cloud, interpolation='bilinear')
+        plt.axis("off")
+        plt.savefig(title + ".pdf", format="pdf", dpi=1080)
+        plt.close()
+
+        title = "tree " + str(i)
+        from sklearn.tree import export_graphviz
+        # Export as dot file
+        export_graphviz(estimator, out_file=title + '.dot', rounded = True, proportion = False, precision = 2, filled = True, class_names=["fail", "success"], feature_names=text_list)
+
+        # Convert to png using system command (requires Graphviz)
+        call(['dot', '-Tpdf', title + '.dot', '-o', title + '.pdf', '-Gdpi=300'])
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("model", help="file containing the model and feature extractor")
@@ -45,6 +79,7 @@ def main():
     subparsers.required = True
     # Training Parser:
     train_parser = subparsers.add_parser('train')
+    train_parser.add_argument("--visualize", "-v", help="visualize the classifier", action="store_true")
     # Predicting Parser:
     predict_parser = subparsers.add_parser("predict")
     predict_parser.add_argument('url', help="The url to the webpage of the Kickstarter project")
@@ -53,6 +88,8 @@ def main():
         extractor, classifier = train_model()
         with open(args.model, "wb") as model:
             dill.dump((extractor, classifier), model)
+        if args.visualize:
+            visualize_classifier(classifier, extractor)
     else:
         with open(args.model, "rb") as model:
             extractor, classifier = dill.load(model)

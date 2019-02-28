@@ -4,6 +4,9 @@ from utils import stop_words
 import numpy as np
 from nltk.stem import porter
 from collections import OrderedDict
+import utils.deterministic_bag_of_words as deterministic_bag_of_words
+from enum import Enum
+import re
 
 class IdxToFeature(object):
 
@@ -11,7 +14,6 @@ class IdxToFeature(object):
         self.start_idx = start_idx
         self.end_idx = end_idx
         self.func = get_feature_name_func
-        print(start_idx, end_idx)
 
     def is_in_range(self, i):
         return self.start_idx <= i <= self.end_idx
@@ -39,6 +41,24 @@ class FeatureExtractor:
                 return o.get_feature(idx)
         raise ValueError("Could not find the specified idx. this is a bug obviously.")
 
+    
+    def _add_bag_of_words(self, X, items):
+        bag_of_words = deterministic_bag_of_words.DBoW
+        categories_enum = Enum('categories', deterministic_bag_of_words.categories)
+        matrix_of_words = []
+        for i in range(len(items)):
+            words_list = [0]*len(categories_enum)
+            description = items[i]['description'].lower()
+            result = re.sub(r'-', ' ', description)
+            result = re.sub(r'[^A-Za-z 1-9]', '', result)
+            for key in bag_of_words:
+                if key in result:
+                    words_list[categories_enum[bag_of_words[key]].value - 1] = 1
+            matrix_of_words.append(words_list)
+        npmatrix = np.array(matrix_of_words)
+        self._add_idx_class(X_shape=X.shape, features_shape=npmatrix.shape, func=lambda i: "DBoW(%s)" % deterministic_bag_of_words.categories[i])
+        X = np.concatenate((X, npmatrix), axis=1)
+        return X
 
     def _add_hour_duration(self, X, items):
         periods_array = np.array([np.array([float(x['hours_duration']) for x in items]).T]).T
@@ -125,7 +145,6 @@ class FeatureExtractor:
 
 
     def extract_features(self, items):
-        print(items)
         print("Preprocessing data")
         X = np.empty([len(items), 0])
         print("Preprocessing goal")
@@ -146,6 +165,8 @@ class FeatureExtractor:
         X = self._add_description(X, items)
         print("Preprocessing about")
         X = self._add_about(X, items)
+        print("Preprocessing bag of words")
+        X = self._add_bag_of_words(X, items)
         return X
 
 
