@@ -16,8 +16,8 @@ def pred_to_str(y):
         return "failure"
 
 
-def train_model():
-    extractor, (X_train, Y_train), (X_test, Y_test) = data.load_dataset("games.json", max_items=10000)
+def train_model(max_items=-1):
+    extractor, (X_train, Y_train), (X_test, Y_test) = data.load_dataset("games.json", max_items=max_items)
     classifier = classifiers.RandomForest()
     classifier.train(X_train, Y_train)
     test_model(classifier, X_test, Y_test)
@@ -80,12 +80,13 @@ def main():
     # Training Parser:
     train_parser = subparsers.add_parser('train')
     train_parser.add_argument("--visualize", "-v", help="visualize the classifier", action="store_true")
+    train_parser.add_argument("--max_items", "-m", help="max number of projects to train and test on", type=int, default=-1)
     # Predicting Parser:
     predict_parser = subparsers.add_parser("predict")
     predict_parser.add_argument('url', help="The url to the webpage of the Kickstarter project")
     args = parser.parse_args()
     if args.mode == "train":
-        extractor, classifier = train_model()
+        extractor, classifier = train_model(args.max_items)
         with open(args.model, "wb") as model:
             dill.dump((extractor, classifier), model)
         if args.visualize:
