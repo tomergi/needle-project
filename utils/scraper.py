@@ -11,6 +11,8 @@ import random
 import base64
 import argparse
 from datetime import datetime
+import lxml
+import lxml.html
 
 
 CURRENCY_CONVERSION_DICT = {
@@ -35,7 +37,7 @@ RE_BACKERS = re.compile("([\d,]+)\s*backers")
 RE_TIME_LEFT = re.compile("(\w+)\s*(\w+)(?:to\sgo)")
 
 
-COUNTRY_DATAFRAME = pd.read_csv("./world-cities.csv")
+#COUNTRY_DATAFRAME = pd.read_csv("./world-cities.csv")
 # def parse_card(soup):
 #     attrs = {}
 #     stats_pat = re.compile('(.*)\s+made\s+it\s+\|\s+(.*)\s+reviews\s+\|\s+(.*)\s+photos')
@@ -83,13 +85,33 @@ def load_page(url):
     return soup
 
 
-def extract_title(soup):
-    pass
-
-
-def extract_description(soup):
-    pass
-
+def extract_rewards(soup):
+    rewards = soup.find_all("h2", attrs={'class': 'pledge__amount'})
+    #rewards = response.xpath("/html/body/main/div/div/div[2]/section[1]/div/div/div/div/div[2]/div[1]/div/ol/li")
+    parsed_rewards = []
+    i = 0
+    for reward in rewards:
+        try:
+            parsed_reward = {}
+            parsed_reward['id'] = i
+            root = lxml.html.fromstring(str(reward))
+            converted_money = reward.find_all("span", attrs={'class' : 'pledge__currency-conversion'})
+            if converted_money:
+                money = converted_money[0].text
+            else:
+                money = root.xpath("//span[contains(@class, 'money')]")
+                if money:
+                    money = money[0].text
+                else:
+                    money = ""
+            price = REWARD_PRICE_RE.match(money.strip().replace(",", ""))
+            parsed_reward['price'] = float(price.group(1))
+            if parsed_reward['price']:
+                parsed_rewards.append(parsed_reward)
+                i += 1
+        except:
+            continue
+    return parsed_rewards
 
 def extract_title_and_description(soup):
     title_desc_cont = soup.find_all('div', attrs={"class": "col-20-24 block-md order-2-md col-lg-14-24"})
@@ -134,9 +156,13 @@ def extract_country_subcountry_city(soup):
     return country, subcountry, city
 
 def extract_category_subcategory(soup):
+    category_re = r".*discover/categories/([0-9a-zA-Z ]+)/"
     filter_lambda = lambda s: s.startswith("https://www.kickstarter.com/discover/categories/")
     result = soup.find_all('a', attrs={'href': filter_lambda})[0]
-    return result.text
+    match = re.match(category_re, result['href'])
+    category = match.group(1).capitalize()
+
+    return category, result.text
 
 def extract_creator(soup):
     creator = soup.find_all('span', attrs={'class': "soft-black ml2 ml0-md break-word"})
@@ -223,24 +249,30 @@ def extract_about(soup):
     result = soup.find_all('div', attrs={"class": "full-description js-full-description responsive-media formatted-lists"})
     return result[0].text.strip()
 
+def extract_hoursduration(soup):
+    elem = soup.find_all('span', attrs={"class": "block type-16 type-24-md medium soft-black"})[0]
+    return float(elem.text) * 24 * 3600
+
+
 
 def parse_page(soup):
     item = {}
     item['title'], item['description'] = extract_title_and_description(soup)
     item['num_updates'] = extract_num_updates(soup)
     item['num_comments'] = extract_num_comments(soup)
-    item['country'], item['subcountry'], item['city'] = extract_country_subcountry_city(soup)
+    #item['country'], item['subcountry'], item['city'] = extract_country_subcountry_city(soup)
     item['creator'] = extract_creator(soup)
     # item['num_projects_by_creator'] = extract_num_projects_by_creator(soup)
     item['num_backers'] = extract_num_backers(soup)
     item['num_pledged'] = extract_num_pledged(soup)
     item['goal'] = extract_goal(soup)
-    item['project_we_love'] = extract_project_we_love(soup)
+    #item['project_we_love'] = extract_project_we_love(soup)
     item['category'], item['subcategory'] = extract_category_subcategory(soup)
     item['about'] = extract_about(soup)
     item['timeleft'] = extract_time_left(soup)
     item['rewards'] = extract_rewards(soup)
-    item['state'] = extract_is_successful(soup)
+    item['hours_duration'] = extract_hoursduration(soup)
+    #item['state'] = extract_is_successful(soup)
     return item
 
 
@@ -272,7 +304,7 @@ def scrap_from_file(input_file_path, output_file_path):
             out_fp.write("\n}")
 
 
-REWARD_PRICE_RE = re.compile(r"(?:US)?\$\s*([\d,.]+)\s*")
+REWARD_PRICE_RE = re.compile(r".*(?:US)?\$\s*([\d,.]+)\s*")
 def extract_from_json_line(json_line):
     raw_html = base64.b64decode(json_line['Text']).decode('utf-8')
     soup = BeautifulSoup(raw_html, 'html.parser')
@@ -358,6 +390,7 @@ if __name__ == '__main__':
     else:
         soup = load_page(args.input)
         parsed = parse_page(soup)
+        parsed['url'] = args.input
         json_out = json.dumps([parsed])
         with open(args.output, "w") as outfd:
             outfd.write(json_out)

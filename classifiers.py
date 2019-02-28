@@ -3,9 +3,8 @@ from sklearn.ensemble import RandomForestClassifier
 
 class Classifier(object):
 
-    def __init__(self, X, Y):
-        self.X = X
-        self.Y = Y
+    def __init__(self):
+        pass
 
     def save_model(self, path):
         raise NotImplementedError
@@ -14,11 +13,6 @@ class Classifier(object):
         raise NotImplementedError
 
     def train(self):
-        raise NotImplementedError
-
-    def preprocess(self):
-        # self.X = modify...
-        # self.Y = modify...
         raise NotImplementedError
 
     def predict(self, X):
@@ -34,50 +28,12 @@ class Classifier(object):
 
 class RandomForest(Classifier):
 
-    def __init__(self,
-                 X,
-                 Y,
-                 n_estimators='warn',
-                 criterion="gini",
-                 max_depth=None,
-                 min_samples_split=2,
-                 min_samples_leaf=1,
-                 min_weight_fraction_leaf=0.,
-                 max_features="auto",
-                 max_leaf_nodes=None,
-                 min_impurity_decrease=0.,
-                 min_impurity_split=None,
-                 bootstrap=True,
-                 oob_score=False,
-                 n_jobs=None,
-                 random_state=None,
-                 verbose=0,
-                 warm_start=False,
-                 class_weight=None):
-        super(RandomForest, self).__init__(X=X, Y=Y)
-        self.clf = RandomForestClassifier(
-            n_estimators=n_estimators,
-            criterion=criterion,
-            max_depth=max_depth,
-            min_samples_split=min_samples_split,
-            min_samples_leaf=min_samples_leaf,
-            min_weight_fraction_leaf=min_weight_fraction_leaf,
-            max_features=max_features,
-            max_leaf_nodes=max_leaf_nodes,
-            min_impurity_decrease=min_impurity_decrease,
-            min_impurity_split=min_impurity_split,
-            bootstrap=bootstrap,
-            oob_score=oob_score,
-            n_jobs=n_jobs,
-            random_state=random_state,
-            verbose=verbose,
-            warm_start=warm_start,
-            class_weight=class_weight,
-        )
-        self.preprocess()
+    def __init__(self, **kwargs):
+        super(RandomForest, self).__init__()
+        self.clf = RandomForestClassifier(**kwargs)
 
-    def train(self):
-        self.clf.fit(self.X, self.Y)
+    def train(self, X, Y):
+        self.clf.fit(X, Y)
 
     def predict(self, X):
         y_hats = self.clf.predict(X)
