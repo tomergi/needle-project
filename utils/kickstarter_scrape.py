@@ -6,7 +6,6 @@ import time
 import lxml
 import lxml.html
 from lxml.etree import tostring
-import requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -21,6 +20,7 @@ browser = webdriver.Firefox()
 
 
 def parse_main_page():
+    """Parse the 'discover' page and fan out to projects mentioned there"""
     page_pattern = "https://www.kickstarter.com/discover/advanced?state=live&category_id=16&woe_id=0&raised=0&sort=end_date&seed=2576250&page=%d"
     current_page = 1
     browser.get(page_pattern % current_page)
@@ -63,6 +63,7 @@ def parse_main_page():
 
         
 def parse_page(url):
+    """Parse a single project url"""
     try:
         print("parsing item", url)
         item = {}
@@ -161,7 +162,9 @@ def parse_page(url):
         return item
     except Exception as e:
         return None
+
 def scrape_projects_list(projects):
+    """Given a list of projects to scrape, scrape each of them"""
     print("there are %d projects" % len(projects))
     outputfd = open("result.json", "w")
     outputfd.write("[\n")
@@ -181,6 +184,7 @@ def scrape_projects_list(projects):
         outputfd.flush()
 
 def get_projects_list_from_csv(filename="ks-projects-201801.csv"):
+    """Given a csv with lots of projects, scrape every project there"""
     urls = []
     with open(filename, "r") as fd:
         reader = csv.reader(fd)
@@ -195,11 +199,8 @@ def get_projects_list_from_csv(filename="ks-projects-201801.csv"):
                 continue
     return urls
 
-#projects = pickle.load(open("projects.pkl", "rb"))
-#parse_main_page()
-
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser("scrapes kickstarter pages according to the given csv file")
     parser.add_argument("csv_file", help="csv file with project names and stuff")
     args = parser.parse_args()
     scrape_projects_list(get_projects_list_from_csv(args.csv_file))

@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 
 
 def pred_to_str(y):
+    """converts the prediction number to a string"""
     if y == 1:
         return "success"
     else:
@@ -17,6 +18,7 @@ def pred_to_str(y):
 
 
 def train_model(max_items=-1):
+    """train the classifier with up to the given amount of items. Returns the feature extractor and the trained classifier"""
     extractor, (X_train, Y_train), (X_test, Y_test) = data.load_dataset("games.json", max_items=max_items)
     classifier = classifiers.RandomForest()
     classifier.train(X_train, Y_train)
@@ -24,6 +26,8 @@ def train_model(max_items=-1):
     return extractor, classifier
 
 def test_model(classifier, X_test, Y_test):
+    """Test the classifier success rate and print the result, and the failed projects rate in the test set 
+    (so we could know what would the success rate have been if we guessed failure every time)"""
     predictions = classifier.predict(X_test)
     correct = np.count_nonzero(predictions == Y_test)
     wrong = np.count_nonzero(predictions != Y_test)
@@ -32,6 +36,7 @@ def test_model(classifier, X_test, Y_test):
 
 
 def predict(url, extractor, classifier):
+    """scrape the given url and classify it"""
     html = scraper.load_page(url)
     item = scraper.parse_page(html)
     item['url'] = url
@@ -42,6 +47,7 @@ def predict(url, extractor, classifier):
 
 
 def visualize_classifier(classifier, extractor):
+    """Outputs all of the decision trees in the classifier and the meaningful features as word clouds"""
     # Extract single tree
     model = classifier.clf
     for i in range(len(model.estimators_)):
@@ -73,7 +79,7 @@ def visualize_classifier(classifier, extractor):
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser("Kickstarter Classifier training and prediction")
     parser.add_argument("model", help="file containing the model and feature extractor")
     subparsers = parser.add_subparsers(dest='mode')
     subparsers.required = True

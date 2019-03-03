@@ -1,3 +1,4 @@
+"""A small word set that we specifically look for when we classify a project"""
 from json import loads
 from enum import Enum
 

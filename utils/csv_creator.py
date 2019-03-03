@@ -2,7 +2,7 @@ import pandas
 import argparse
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser("get only a subset of projects from the csv according to their catergory")
     parser.add_argument("main", help="main category to scrape")
     args = parser.parse_args()
     csv = pandas.read_csv("ks-projects-201801.csv")
