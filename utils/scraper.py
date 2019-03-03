@@ -33,7 +33,7 @@ PARSE_MONEY_STR = "([$¢£¤¥֏؋৲৳৻૱௹฿៛\u20a0-\u20bd\ua838\ufdfc
 RE_PARSE_MONEY = re.compile(PARSE_MONEY_STR)
 # RE_GOAL = re.compile("pledged\sof\s"+PARSE_MONEY_STR+"\sgoal")
 RE_PLEDGED = re.compile("\$\s*([\d,]+)")
-RE_BACKERS = re.compile("([\d,]+)\s*backers")
+RE_BACKERS = re.compile("([\d,]+)\s*backers?")
 RE_TIME_LEFT = re.compile("(\w+)\s*(\w+)(?:to\sgo)")
 
 
@@ -189,7 +189,7 @@ def parse_money(raw_text):
         currency, amount = raw_text[-1], raw_text[0:-1]
     else:
         raise ValueError("Error with parsing of money: %s" % raw_text)
-    amount = amount.replace(',', '')
+    amount = amount.replace(',', '').replace(' ', '')
     amount = float(amount)
     if currency in CURRENCY_CONVERSION_DICT:
         amount = CURRENCY_CONVERSION_DICT[currency] * amount

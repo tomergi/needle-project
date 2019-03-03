@@ -145,27 +145,16 @@ class FeatureExtractor:
 
 
     def extract_features(self, items):
-        print("Preprocessing data")
         X = np.empty([len(items), 0])
-        print("Preprocessing goal")
         X = self._add_goal(X, items)
-        #print("Preprocessing goal_pledged_ratio")
         #X = self._add_goal_pledged_ratio(X, items)
-        print("Preprocessing hour_duration")
         X = self._add_hour_duration(X, items)
-        print("Preprocessing num_rewards")
         X = self._add_reward_num(X, items)
-        print("Preprocessing num_updates")
         X = self._add_num_updates(X, items)
-        print("Preprocessing num_comments")
         X = self._add_num_comments(X, items)
-        print("Preprocessing titles")
         X = self._add_titles(X, items)
-        print("Preprocessing description")
         X = self._add_description(X, items)
-        print("Preprocessing about")
         X = self._add_about(X, items)
-        print("Preprocessing bag of words")
         X = self._add_bag_of_words(X, items)
         return X
 

@@ -37,7 +37,7 @@ def predict(url, extractor, classifier):
     item['url'] = url
     items = [item]
     X = extractor.extract_features(items)
-    y_hat = classifier.predict(X)
+    y_hat = classifier.predict(X)[0]
     print("According to the classifier the project result will be %s" % pred_to_str(y_hat))
 
 
@@ -60,7 +60,7 @@ def visualize_classifier(classifier, extractor):
         # word_cloud.to_file(title + ".png")
         plt.imshow(word_cloud, interpolation='bilinear')
         plt.axis("off")
-        plt.savefig(title + ".pdf", format="pdf", dpi=1080)
+        plt.savefig(title + ".jpg", format="jpg", dpi=1080)
         plt.close()
 
         title = "tree " + str(i)
@@ -69,7 +69,7 @@ def visualize_classifier(classifier, extractor):
         export_graphviz(estimator, out_file=title + '.dot', rounded = True, proportion = False, precision = 2, filled = True, class_names=["fail", "success"], feature_names=text_list)
 
         # Convert to png using system command (requires Graphviz)
-        call(['dot', '-Tpdf', title + '.dot', '-o', title + '.pdf', '-Gdpi=300'])
+        call(['dot', '-Tjpg', title + '.dot', '-o', title + '.jpg', '-Gdpi=1080'])
 
 
 def main():
